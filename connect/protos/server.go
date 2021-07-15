@@ -1,4 +1,4 @@
-package server
+package protos
 
 import (
 	"chat_go/connect/base"
@@ -18,9 +18,9 @@ const (
 )
 
 type ServeProto interface {
-	Init(*Server, string) error
+	Init(string) error
 	WriteData(*base.UserChannel, string)
-	ReadData(*Server, *base.UserChannel, string)
+	ReadData(*base.UserChannel, string)
 }
 
 type Server struct {

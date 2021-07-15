@@ -3,7 +3,6 @@ package protos
 import (
 	"chat_go/config"
 	"chat_go/connect/base"
-	"chat_go/connect/server"
 	"chat_go/proto"
 	"encoding/json"
 	"github.com/gorilla/websocket"
@@ -14,22 +13,22 @@ import (
 
 
 type ServeWs struct {
+	*Server
 }
 
-
-func (self *ServeWs) Init(s *server.Server, sId string) error {
+func (self *ServeWs) Init(sId string) error {
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		self.Serve(s, sId, w, r)
+		self.Serve(sId, w, r)
 	})
 	err := http.ListenAndServe(config.Conf.Connect.ConnectWebsocket.Bind, nil)
 	return err
 }
 
-func (self *ServeWs) Serve(s *server.Server, sId string, w http.ResponseWriter, r *http.Request) {
+func (self *ServeWs) Serve(sId string, w http.ResponseWriter, r *http.Request) {
 
 	var upGrader = websocket.Upgrader{
-		ReadBufferSize:  server.ReadBufferSize,
-		WriteBufferSize: server.WriteBufferSize,
+		ReadBufferSize:  ReadBufferSize,
+		WriteBufferSize: WriteBufferSize,
 	}
 	//cross origin domain support
 	upGrader.CheckOrigin = func(r *http.Request) bool { return true }
@@ -42,17 +41,17 @@ func (self *ServeWs) Serve(s *server.Server, sId string, w http.ResponseWriter, 
 	}
 	var ch *base.UserChannel
 	//default sendChan size eq 512
-	ch = base.NewUserChannel(server.BroadcastSize)
+	ch = base.NewUserChannel(BroadcastSize)
 	ch.Conn = conn
 	//send data to websocket conn
 	go self.WriteData(ch, sId)
 	//get data from websocket conn
-	go self.ReadData(s, ch, sId)
+	go self.ReadData(ch, sId)
 }
 
 func (self *ServeWs) WriteData(ch *base.UserChannel, sId string) {
 	//PingPeriod default eq 54s
-	ticker := time.NewTicker(server.PingPeriod)
+	ticker := time.NewTicker(PingPeriod)
 	defer func() {
 		ticker.Stop()
 		ch.Conn.Close()
@@ -61,7 +60,7 @@ func (self *ServeWs) WriteData(ch *base.UserChannel, sId string) {
 		select {
 		case message, ok := <- ch.SendChan:
 			//write data dead time , like http timeout , default 10s
-			ch.Conn.SetWriteDeadline(time.Now().Add(server.WriteWait))
+			ch.Conn.SetWriteDeadline(time.Now().Add(WriteWait))
 			if !ok{
 				logrus.Warn("SetWriteDeadline not ok")
 				// 发送关闭帧
@@ -80,7 +79,7 @@ func (self *ServeWs) WriteData(ch *base.UserChannel, sId string) {
 			}
 		case <-ticker.C:
 			//heartbeat，if ping error will exit and close current websocket conn
-			ch.Conn.SetWriteDeadline(time.Now().Add(server.WriteWait))
+			ch.Conn.SetWriteDeadline(time.Now().Add(WriteWait))
 			logrus.Infof("websocket.PingMessage :%v", websocket.PingMessage)
 			if err := ch.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
@@ -89,7 +88,7 @@ func (self *ServeWs) WriteData(ch *base.UserChannel, sId string) {
 	}
 }
 
-func (self *ServeWs) ReadData(s *server.Server, ch *base.UserChannel, sId string) {
+func (self *ServeWs) ReadData(ch *base.UserChannel, sId string) {
 	defer func() {
 		logrus.Infof("start exec disConnect ...")
 		if ch.Room == nil || ch.UserId == 0 {
@@ -101,17 +100,17 @@ func (self *ServeWs) ReadData(s *server.Server, ch *base.UserChannel, sId string
 		disConnectRequest := new(proto.DisConnectRequest)
 		disConnectRequest.RoomId = ch.Room.Id
 		disConnectRequest.UserId = ch.UserId
-		s.GetBucketByUID(ch.UserId).DeleteChannel(ch)
-		if err := s.Operator.DisConnect(disConnectRequest); err != nil {
+		self.GetBucketByUID(ch.UserId).DeleteChannel(ch)
+		if err := self.Operator.DisConnect(disConnectRequest); err != nil {
 			logrus.Warnf("DisConnect err :%s", err.Error())
 		}
 		ch.Conn.Close()
 	}()
 
-	ch.Conn.SetReadLimit(s.Options.MaxMessageSize)
-	ch.Conn.SetReadDeadline(time.Now().Add(s.Options.PongWait))
+	ch.Conn.SetReadLimit(self.Options.MaxMessageSize)
+	ch.Conn.SetReadDeadline(time.Now().Add(self.Options.PongWait))
 	ch.Conn.SetPongHandler(func(string) error {
-		ch.Conn.SetReadDeadline(time.Now().Add(s.Options.PongWait))
+		ch.Conn.SetReadDeadline(time.Now().Add(self.Options.PongWait))
 		return nil
 	})
 	for{
@@ -135,7 +134,7 @@ func (self *ServeWs) ReadData(s *server.Server, ch *base.UserChannel, sId string
 			return
 		}
 		connReq.ServerId = sId //config.Conf.Connect.ConnectWebsocket.ServerId
-		userId, err := s.Operator.Connect(connReq)
+		userId, err := self.Operator.Connect(connReq)
 		if err != nil {
 			logrus.Errorf("s.Operator.Connect error %s", err.Error())
 			return
@@ -145,7 +144,7 @@ func (self *ServeWs) ReadData(s *server.Server, ch *base.UserChannel, sId string
 			return
 		}
 		logrus.Infof("websocket server call return userId:%d,RoomId:%d", userId, connReq.RoomId)
-		b := s.GetBucketByUID(userId)
+		b := self.GetBucketByUID(userId)
 		//insert into a bucket
 		err = b.AddChannel(userId, connReq.RoomId, ch)
 		if err != nil {

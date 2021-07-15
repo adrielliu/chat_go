@@ -6,7 +6,6 @@ import (
 	"chat_go/api/rpc"
 	"chat_go/config"
 	"chat_go/connect/base"
-	"chat_go/connect/server"
 	"chat_go/pkg/stickpackage"
 	"chat_go/proto"
 	"encoding/binary"
@@ -21,9 +20,10 @@ import (
 const maxInt = 1<<31 - 1
 
 type ServeTCP struct {
+	*Server
 }
 
-func (self *ServeTCP) Init(s *server.Server, sId string) error  {
+func (self *ServeTCP) Init(sId string) error  {
 	aTcpAddr := strings.Split(config.Conf.Connect.ConnectTcp.Bind, ",")
 	cpuNum := config.Conf.Connect.ConnectBucket.CpuNum
 	var (
@@ -76,7 +76,7 @@ func (self *ServeTCP) acceptTcp(listener *net.TCPListener, sId string)  {
 			logrus.Errorf("conn.SetWriteBuffer() error:%s", err.Error())
 			return
 		}
-		go self.Serve(server.DefaultServer, conn, r, sId)
+		go self.Serve(conn, r, sId)
 		if r++; r == maxInt {
 			logrus.Infof("conn.acceptTcp num is:%d", r)
 			r = 0
@@ -84,17 +84,17 @@ func (self *ServeTCP) acceptTcp(listener *net.TCPListener, sId string)  {
 	}
 }
 
-func (self *ServeTCP) Serve(s *server.Server, conn *net.TCPConn, r int, sId string){
+func (self *ServeTCP) Serve(conn *net.TCPConn, r int, sId string){
 	var ch *base.UserChannel
-	ch = base.NewUserChannel(server.BroadcastSize)
+	ch = base.NewUserChannel(BroadcastSize)
 	ch.ConnTcp = conn
 	go self.WriteData(ch, sId)
-	go self.ReadData(s, ch, sId)
+	go self.ReadData(ch, sId)
 }
 
 func (self *ServeTCP) WriteData(ch *base.UserChannel, sId string){
 	//ping time default 54s
-	ticker := time.NewTicker(server.DefaultServer.Options.PingPeriod)
+	ticker := time.NewTicker(DefaultServer.Options.PingPeriod)
 	defer func() {
 		ticker.Stop()
 		_ = ch.ConnTcp.Close()
@@ -131,7 +131,7 @@ func (self *ServeTCP) WriteData(ch *base.UserChannel, sId string){
 	}
 }
 
-func (self *ServeTCP) ReadData(s *server.Server, ch *base.UserChannel, sId string) {
+func (self *ServeTCP) ReadData(ch *base.UserChannel, sId string) {
 	defer func() {
 		logrus.Infof("start exec disConnect ...")
 		if ch.Room == nil || ch.UserId == 0 {
@@ -143,8 +143,8 @@ func (self *ServeTCP) ReadData(s *server.Server, ch *base.UserChannel, sId strin
 		disConnectRequest := new(proto.DisConnectRequest)
 		disConnectRequest.RoomId = ch.Room.Id
 		disConnectRequest.UserId = ch.UserId
-		s.GetBucketByUID(ch.UserId).DeleteChannel(ch)
-		if err := s.Operator.DisConnect(disConnectRequest); err != nil {
+		self.GetBucketByUID(ch.UserId).DeleteChannel(ch)
+		if err := self.Operator.DisConnect(disConnectRequest); err != nil {
 			logrus.Warnf("DisConnect server err :%s", err.Error())
 		}
 		if err := ch.ConnTcp.Close(); err != nil {
@@ -204,7 +204,7 @@ func (self *ServeTCP) ReadData(s *server.Server, ch *base.UserChannel, sId strin
 				//fix
 				//connReq.ServerId = config.Conf.Connect.ConnectTcp.ServerId
 				connReq.ServerId = sId
-				userId, err := s.Operator.Connect(&connReq)
+				userId, err := self.Operator.Connect(&connReq)
 				logrus.Infof("tcp s.Operator.Connect userId is :%d", userId)
 				if err != nil {
 					logrus.Errorf("tcp s.Operator.Connect error %s", err.Error())
@@ -214,7 +214,7 @@ func (self *ServeTCP) ReadData(s *server.Server, ch *base.UserChannel, sId strin
 					logrus.Error("tcp Invalid AuthToken ,userId empty")
 					return
 				}
-				b := s.GetBucketByUID(userId)
+				b := self.GetBucketByUID(userId)
 				//insert into a bucket
 				err = b.AddChannel(userId, connReq.RoomId, ch)
 				if err != nil {

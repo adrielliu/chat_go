@@ -8,7 +8,10 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
 	"time"
 )
 
@@ -62,5 +65,9 @@ func Run(proto string)  {
 }
 
 func main() {
-	Run("tcp")
+	Run("ws")
+	quit := make(chan os.Signal)
+	signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	<-quit
+	fmt.Println("Server exiting")
 }

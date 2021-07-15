@@ -6,12 +6,7 @@
 package main
 
 import (
-	"chat_go/api"
-	"chat_go/connect/server"
-	"chat_go/logic"
-	"chat_go/site"
 	"chat_go/task"
-	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -19,28 +14,7 @@ import (
 )
 
 func main() {
-	var module string
-	flag.StringVar(&module, "module", "", "assign run module")
-	flag.Parse()
-	fmt.Println(fmt.Sprintf("start run %s module", module))
-	switch module {
-	case "logic":
-		logic.New().Run()
-	case "connect_websocket":
-		server.New().Run()
-	case "connect_tcp":
-		server.New().RunTcp()
-	case "task":
-		task.New().Run()
-	case "api":
-		api.New().Run()
-	case "site":
-		site.New().Run()
-	default:
-		fmt.Println("exiting,module param error!")
-		return
-	}
-	fmt.Println(fmt.Sprintf("run %s module done!", module))
+	task.New().Run()
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	<-quit

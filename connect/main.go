@@ -66,7 +66,11 @@ func Run(proto string)  {
 }
 
 func main() {
-	Run("ws")
+	// tcp 只实现了 sendRoom
+	// ws 只实现了 joinRoom
+
+	//Run("ws")
+	Run("tcp")
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	<-quit

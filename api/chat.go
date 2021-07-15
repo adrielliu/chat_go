@@ -1,4 +1,4 @@
-package api
+package main
 
 import (
 	"chat_go/api/router"
@@ -59,4 +59,8 @@ func  (c *Chat) Run() {
 	}
 	logrus.Infof("Server exiting")
 	os.Exit(0)
+}
+
+func main() {
+	New().Run()
 }

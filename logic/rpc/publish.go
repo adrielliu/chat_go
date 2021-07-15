@@ -19,7 +19,7 @@ import (
 var RedisClient *redis.Client
 var RedisSessClient *redis.Client
 
-func (ligic *Logic) InitPublishRedisCLient() (err error) {
+func InitPublishRedisCLient() (err error) {
 	redisOpt := tools.RedisOption{
 		Address:  config.Conf.Common.CommonRedis.RedisAddress,
 		Password: config.Conf.Common.CommonRedis.RedisPassword,
@@ -34,7 +34,7 @@ func (ligic *Logic) InitPublishRedisCLient() (err error) {
 	return err
 }
 
-func (logic *Logic) InitRpcServer() (err error) {
+func InitRpcServer(lId string) (err error) {
 	var network, addr string
 	rpcAddressList := strings.Split(config.Conf.Logic.LogicBase.RpcAddress, ",")
 	for _, bind := range rpcAddressList {
@@ -42,17 +42,17 @@ func (logic *Logic) InitRpcServer() (err error) {
 			logrus.Panicf("InitLogicRpc ParseNetwork error : %s", err.Error())
 		}
 		logrus.Infof("logic start run at-->%s:%s", network, addr)
-		go logic.createRpcServer(network, addr)
+		go CreateRpcServer(network, addr, lId)
 	}
 	return
 }
 
-func (logic *Logic) createRpcServer(network string, addr string)  {
+func CreateRpcServer(network string, addr string, lId string)  {
 	s := server.NewServer()
-	logic.addRegistryPlugin(s, network, addr)
+	addRegistryPlugin(s, network, addr)
 	// serverId must be unique
 	//err := s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathLogic, new(RpcLogic), fmt.Sprintf("%s", config.Conf.Logic.LogicBase.ServerId))
-	err := s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathLogic, new(RpcLogic), fmt.Sprintf("%s", logic.ServerId))
+	err := s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathLogic, new(RpcLogic), fmt.Sprintf("%s", lId))
 	if err != nil {
 		logrus.Errorf("register error:%s", err.Error())
 	}
@@ -63,7 +63,7 @@ func (logic *Logic) createRpcServer(network string, addr string)  {
 
 }
 
-func (logic *Logic) addRegistryPlugin(s *server.Server, network string, addr string) {
+func addRegistryPlugin(s *server.Server, network string, addr string) {
 	r := &serverplugin.EtcdV3RegisterPlugin{
 		ServiceAddress: network + "@" + addr,
 		EtcdServers:    []string{config.Conf.Common.CommonEtcd.Host},
@@ -78,7 +78,7 @@ func (logic *Logic) addRegistryPlugin(s *server.Server, network string, addr str
 	s.Plugins.Add(r)
 }
 
-func (logic *Logic) RedisPublishChannel(serverId string, toUserId int, msg []byte) (err error) {
+func RedisPublishChannel(serverId string, toUserId int, msg []byte) (err error) {
 	redisMsg := proto.RedisMsg{
 		Op:       config.OpSingleSend,
 		ServerId: serverId,
@@ -98,7 +98,7 @@ func (logic *Logic) RedisPublishChannel(serverId string, toUserId int, msg []byt
 	return
 }
 
-func (logic *Logic) RedisPublishRoomInfo(roomId int, count int, RoomUserInfo map[string]string, msg []byte) (err error) {
+func RedisPublishRoomInfo(roomId int, count int, RoomUserInfo map[string]string, msg []byte) (err error) {
 	var redisMsg = &proto.RedisMsg{
 		Op:           config.OpRoomSend,
 		RoomId:       roomId,
@@ -120,7 +120,7 @@ func (logic *Logic) RedisPublishRoomInfo(roomId int, count int, RoomUserInfo map
 }
 
 
-func (logic *Logic) RedisPushRoomCount(roomId int, count int) (err error) {
+func RedisPushRoomCount(roomId int, count int) (err error) {
 	var redisMsg = &proto.RedisMsg{
 		Op:     config.OpRoomCountSend,
 		RoomId: roomId,
@@ -139,7 +139,7 @@ func (logic *Logic) RedisPushRoomCount(roomId int, count int) (err error) {
 	return
 }
 
-func (logic *Logic) RedisPushRoomInfo(roomId int, count int, roomUserInfo map[string]string) (err error) {
+func RedisPushRoomInfo(roomId int, count int, roomUserInfo map[string]string) (err error) {
 	var redisMsg = &proto.RedisMsg{
 		Op:           config.OpRoomInfoSend,
 		RoomId:       roomId,
@@ -159,21 +159,21 @@ func (logic *Logic) RedisPushRoomInfo(roomId int, count int, roomUserInfo map[st
 	return
 }
 
-func (logic *Logic) getRoomUserKey(authKey string) string {
+func getRoomUserKey(authKey string) string {
 	var returnKey bytes.Buffer
 	returnKey.WriteString(config.RedisRoomPrefix)
 	returnKey.WriteString(authKey)
 	return returnKey.String()
 }
 
-func (logic *Logic) getRoomOnlineCountKey(authKey string) string {
+func getRoomOnlineCountKey(authKey string) string {
 	var returnKey bytes.Buffer
 	returnKey.WriteString(config.RedisRoomOnlinePrefix)
 	returnKey.WriteString(authKey)
 	return returnKey.String()
 }
 
-func (logic *Logic) getUserKey(authKey string) string {
+func getUserKey(authKey string) string {
 	var returnKey bytes.Buffer
 	returnKey.WriteString(config.RedisPrefix)
 	returnKey.WriteString(authKey)

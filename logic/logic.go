@@ -1,33 +1,35 @@
-package logic
+package main
 
 import (
 	"chat_go/config"
+	"chat_go/logic/rpc"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"os"
+	"os/signal"
 	"runtime"
 	"fmt"
+	"syscall"
 )
 
-type Logic struct {
-	ServerId string
-}
 
-func New() *Logic {
-	return new(Logic)
-}
 
-func (logic *Logic) Run()  {
+func main()  {
 	// read config
 	logicCinfig := config.Conf.Logic
 	runtime.GOMAXPROCS(logicCinfig.LogicBase.CpuNum)
-	logic.ServerId = fmt.Sprintf("logic-%s", uuid.New().String())
+	ServerId := fmt.Sprintf("logic-%s", uuid.New().String())
 	//init publish redis
 	if err := logic.InitPublishRedisCLient(); err != nil {
 		logrus.Panicf("logic init publishRedisClient fail,err:%s", err.Error())
 	}
 
 	//init server server
-	if err := logic.InitRpcServer(); err != nil {
+	if err := logic.InitRpcServer(ServerId); err != nil {
 		logrus.Panicf("logic init server server fail")
 	}
+	quit := make(chan os.Signal)
+	signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	<-quit
+	fmt.Println("Server exiting")
 }

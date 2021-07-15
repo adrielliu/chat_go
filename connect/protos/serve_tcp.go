@@ -6,6 +6,7 @@ import (
 	"chat_go/api/rpc"
 	"chat_go/config"
 	"chat_go/connect/base"
+	"chat_go/connect/server"
 	"chat_go/pkg/stickpackage"
 	"chat_go/proto"
 	"encoding/binary"
@@ -22,7 +23,7 @@ const maxInt = 1<<31 - 1
 type ServeTCP struct {
 }
 
-func (self *ServeTCP) Init(s *Server, c *Connect) error  {
+func (self *ServeTCP) Init(s *server.Server, sId string) error  {
 	aTcpAddr := strings.Split(config.Conf.Connect.ConnectTcp.Bind, ",")
 	cpuNum := config.Conf.Connect.ConnectBucket.CpuNum
 	var (
@@ -42,13 +43,13 @@ func (self *ServeTCP) Init(s *Server, c *Connect) error  {
 		logrus.Infof("start tcp listen at:%s", ipPort)
 		// cpu core num
 		for i := 0; i < cpuNum; i++ {
-			go self.acceptTcp(listener, c)
+			go self.acceptTcp(listener, sId)
 		}
 	}
 	return nil
 }
 
-func (self *ServeTCP) acceptTcp(listener *net.TCPListener, c *Connect)  {
+func (self *ServeTCP) acceptTcp(listener *net.TCPListener, sId string)  {
 	var (
 		conn *net.TCPConn
 		err  error
@@ -75,7 +76,7 @@ func (self *ServeTCP) acceptTcp(listener *net.TCPListener, c *Connect)  {
 			logrus.Errorf("conn.SetWriteBuffer() error:%s", err.Error())
 			return
 		}
-		go self.Serve(DefaultServer, conn, r, c)
+		go self.Serve(server.DefaultServer, conn, r, sId)
 		if r++; r == maxInt {
 			logrus.Infof("conn.acceptTcp num is:%d", r)
 			r = 0
@@ -83,17 +84,17 @@ func (self *ServeTCP) acceptTcp(listener *net.TCPListener, c *Connect)  {
 	}
 }
 
-func (self *ServeTCP) Serve(s *Server, conn *net.TCPConn, r int, c *Connect){
+func (self *ServeTCP) Serve(s *server.Server, conn *net.TCPConn, r int, sId string){
 	var ch *base.UserChannel
-	ch = base.NewUserChannel(BroadcastSize)
+	ch = base.NewUserChannel(server.BroadcastSize)
 	ch.ConnTcp = conn
-	go self.WriteData(ch, c)
-	go self.ReadData(s, ch, c)
+	go self.WriteData(ch, sId)
+	go self.ReadData(s, ch, sId)
 }
 
-func (self *ServeTCP) WriteData(ch *base.UserChannel, c *Connect){
+func (self *ServeTCP) WriteData(ch *base.UserChannel, sId string){
 	//ping time default 54s
-	ticker := time.NewTicker(DefaultServer.Options.PingPeriod)
+	ticker := time.NewTicker(server.DefaultServer.Options.PingPeriod)
 	defer func() {
 		ticker.Stop()
 		_ = ch.ConnTcp.Close()
@@ -130,7 +131,7 @@ func (self *ServeTCP) WriteData(ch *base.UserChannel, c *Connect){
 	}
 }
 
-func (self *ServeTCP) ReadData(s *Server, ch *base.UserChannel, c *Connect) {
+func (self *ServeTCP) ReadData(s *server.Server, ch *base.UserChannel, sId string) {
 	defer func() {
 		logrus.Infof("start exec disConnect ...")
 		if ch.Room == nil || ch.UserId == 0 {
@@ -202,7 +203,7 @@ func (self *ServeTCP) ReadData(s *Server, ch *base.UserChannel, c *Connect) {
 				connReq.RoomId = rawTcpMsg.RoomId
 				//fix
 				//connReq.ServerId = config.Conf.Connect.ConnectTcp.ServerId
-				connReq.ServerId = c.ServerId
+				connReq.ServerId = sId
 				userId, err := s.Operator.Connect(&connReq)
 				logrus.Infof("tcp s.Operator.Connect userId is :%d", userId)
 				if err != nil {

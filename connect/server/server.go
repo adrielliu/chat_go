@@ -1,4 +1,4 @@
-package protos
+package server
 
 import (
 	"chat_go/connect/base"
@@ -18,13 +18,6 @@ const (
 )
 
 
-type ServeProto interface {
-	Init(*Server, *Connect) error
-	WriteData(*base.UserChannel, *Connect)
-	ReadData(*Server, *base.UserChannel, *Connect)
-}
-
-
 type ServerOptions struct {
 	WriteWait       time.Duration
 	PongWait        time.Duration
@@ -42,6 +35,8 @@ type Server struct {
 	Operator  base.Operator
 }
 
+var DefaultServer *Server
+
 func NewServer(buckets []*base.Bucket, o base.Operator, opts ServerOptions) *Server {
 	s := new(Server)
 	s.Buckets = buckets
@@ -58,3 +53,4 @@ func (s *Server) GetBucketByUID(userId int) *base.Bucket {
 	idx := tools.CityHash32([]byte(userIdStr), uint32(len(userIdStr))) % s.bucketIdx
 	return s.Buckets[idx]
 }
+

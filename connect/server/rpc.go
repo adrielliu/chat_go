@@ -1,4 +1,4 @@
-package protos
+package server
 
 import (
 	"chat_go/config"
@@ -17,9 +17,40 @@ import (
 	"time"
 )
 
-var logicRpcClient client.XClient
 var once sync.Once
+var logicRpcClient client.XClient
 
+func init(){
+	once.Do(func() {
+		d := client.NewEtcdV3Discovery(
+			config.Conf.Common.CommonEtcd.BasePath,
+			config.Conf.Common.CommonEtcd.ServerPathLogic,
+			[]string{config.Conf.Common.CommonEtcd.Host},
+			nil,
+		)
+		logicRpcClient = client.NewXClient(config.Conf.Common.CommonEtcd.ServerPathLogic, client.Failtry, client.RandomSelect, d, client.DefaultOption)
+	})
+	if logicRpcClient == nil {
+		logrus.Panic("InitLogicRpcClient err: get server client nil")
+	}
+}
+
+type DefaultOperator struct {
+}
+
+//server call logic layer
+func (o *DefaultOperator) Connect(conn *proto.ConnectRequest) (uid int, err error) {
+	rpcConnect := new(RpcConnect)
+	uid, err = rpcConnect.Connect(conn)
+	return
+}
+
+//server call logic layer
+func (o *DefaultOperator) DisConnect(disConn *proto.DisConnectRequest) (err error) {
+	rpcConnect := new(RpcConnect)
+	err = rpcConnect.DisConnect(disConn)
+	return
+}
 
 type RpcConnect struct {
 }
@@ -44,8 +75,7 @@ func (rpc *RpcConnect) DisConnect(disConnReq *proto.DisConnectRequest) (err erro
 	return
 }
 
-
-func (c *Connect) InitConnectWebsocketRpcServer() (err error) {
+func (rpc *RpcConnect) InitConnectWebsocketRpcServer(sId string) (err error) {
 	var network, addr string
 	connectRpcAddress := strings.Split(config.Conf.Connect.ConnectRpcAddressWebSockts.Address, ",")
 	for _, bind := range connectRpcAddress {
@@ -53,12 +83,12 @@ func (c *Connect) InitConnectWebsocketRpcServer() (err error) {
 			logrus.Panicf("InitConnectWebsocketRpcServer ParseNetwork error : %s", err)
 		}
 		logrus.Infof("Connect start run at-->%s:%s", network, addr)
-		go c.createConnectWebsocktsRpcServer(network, addr)
+		go rpc.createConnectWebsocktsRpcServer(sId, network, addr)
 	}
 	return
 }
 
-func (c *Connect) InitConnectTcpRpcServer() (err error) {
+func (rpc *RpcConnect) InitConnectTcpRpcServer(sId string) (err error) {
 	var network, addr string
 	connectRpcAddress := strings.Split(config.Conf.Connect.ConnectRpcAddressTcp.Address, ",")
 	for _, bind := range connectRpcAddress {
@@ -66,35 +96,35 @@ func (c *Connect) InitConnectTcpRpcServer() (err error) {
 			logrus.Panicf("InitConnectTcpRpcServer ParseNetwork error : %s", err)
 		}
 		logrus.Infof("Connect start run at-->%s:%s", network, addr)
-		go c.createConnectTcpRpcServer(network, addr)
+		go rpc.createConnectTcpRpcServer(sId, network, addr)
 	}
 	return
 }
 
-func (c *Connect) createConnectWebsocktsRpcServer(network string, addr string) {
+func (rpc *RpcConnect) createConnectWebsocktsRpcServer(sId string, network string, addr string) {
 	s := server.NewServer()
 	addRegistryPlugin(s, network, addr)
 	//config.Conf.Connect.ConnectTcp.ServerId
 	//s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", config.Conf.Connect.ConnectWebsocket.ServerId))
-	s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", c.ServerId))
+	s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", sId))
 	s.RegisterOnShutdown(func(s *server.Server) {
 		s.UnregisterAll()
 	})
 	s.Serve(network, addr)
 }
 
-func (c *Connect) createConnectTcpRpcServer(network string, addr string) {
+func (rpc *RpcConnect) createConnectTcpRpcServer(sId string, network string, addr string) {
 	s := server.NewServer()
 	addRegistryPlugin(s, network, addr)
 	//s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", config.Conf.Connect.ConnectTcp.ServerId))
-	s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", c.ServerId))
+	s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", sId))
 	s.RegisterOnShutdown(func(s *server.Server) {
 		s.UnregisterAll()
 	})
 	s.Serve(network, addr)
 }
 
-
+// push
 type RpcConnectPush struct {
 }
 

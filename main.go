@@ -7,7 +7,7 @@ package main
 
 import (
 	"chat_go/api"
-	"chat_go/connect/protos"
+	"chat_go/connect/server"
 	"chat_go/logic"
 	"chat_go/site"
 	"chat_go/task"
@@ -27,9 +27,9 @@ func main() {
 	case "logic":
 		logic.New().Run()
 	case "connect_websocket":
-		protos.New().Run()
+		server.New().Run()
 	case "connect_tcp":
-		protos.New().RunTcp()
+		server.New().RunTcp()
 	case "task":
 		task.New().Run()
 	case "api":

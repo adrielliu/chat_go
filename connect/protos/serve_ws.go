@@ -3,6 +3,7 @@ package protos
 import (
 	"chat_go/config"
 	"chat_go/connect/base"
+	"chat_go/connect/server"
 	"chat_go/proto"
 	"encoding/json"
 	"github.com/gorilla/websocket"
@@ -16,19 +17,19 @@ type ServeWs struct {
 }
 
 
-func (self *ServeWs) Init(s *Server, c *Connect) error {
+func (self *ServeWs) Init(s *server.Server, sId string) error {
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		self.Serve(s, c, w, r)
+		self.Serve(s, sId, w, r)
 	})
 	err := http.ListenAndServe(config.Conf.Connect.ConnectWebsocket.Bind, nil)
 	return err
 }
 
-func (self *ServeWs) Serve(s *Server, c *Connect, w http.ResponseWriter, r *http.Request) {
+func (self *ServeWs) Serve(s *server.Server, sId string, w http.ResponseWriter, r *http.Request) {
 
 	var upGrader = websocket.Upgrader{
-		ReadBufferSize:  ReadBufferSize,
-		WriteBufferSize: WriteBufferSize,
+		ReadBufferSize:  server.ReadBufferSize,
+		WriteBufferSize: server.WriteBufferSize,
 	}
 	//cross origin domain support
 	upGrader.CheckOrigin = func(r *http.Request) bool { return true }
@@ -41,17 +42,17 @@ func (self *ServeWs) Serve(s *Server, c *Connect, w http.ResponseWriter, r *http
 	}
 	var ch *base.UserChannel
 	//default sendChan size eq 512
-	ch = base.NewUserChannel(BroadcastSize)
+	ch = base.NewUserChannel(server.BroadcastSize)
 	ch.Conn = conn
 	//send data to websocket conn
-	go self.WriteData(ch, c)
+	go self.WriteData(ch, sId)
 	//get data from websocket conn
-	go self.ReadData(s, ch, c)
+	go self.ReadData(s, ch, sId)
 }
 
-func (self *ServeWs) WriteData(ch *base.UserChannel, c *Connect) {
+func (self *ServeWs) WriteData(ch *base.UserChannel, sId string) {
 	//PingPeriod default eq 54s
-	ticker := time.NewTicker(PingPeriod)
+	ticker := time.NewTicker(server.PingPeriod)
 	defer func() {
 		ticker.Stop()
 		ch.Conn.Close()
@@ -60,7 +61,7 @@ func (self *ServeWs) WriteData(ch *base.UserChannel, c *Connect) {
 		select {
 		case message, ok := <- ch.SendChan:
 			//write data dead time , like http timeout , default 10s
-			ch.Conn.SetWriteDeadline(time.Now().Add(WriteWait))
+			ch.Conn.SetWriteDeadline(time.Now().Add(server.WriteWait))
 			if !ok{
 				logrus.Warn("SetWriteDeadline not ok")
 				// 发送关闭帧
@@ -79,7 +80,7 @@ func (self *ServeWs) WriteData(ch *base.UserChannel, c *Connect) {
 			}
 		case <-ticker.C:
 			//heartbeat，if ping error will exit and close current websocket conn
-			ch.Conn.SetWriteDeadline(time.Now().Add(WriteWait))
+			ch.Conn.SetWriteDeadline(time.Now().Add(server.WriteWait))
 			logrus.Infof("websocket.PingMessage :%v", websocket.PingMessage)
 			if err := ch.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
@@ -88,7 +89,7 @@ func (self *ServeWs) WriteData(ch *base.UserChannel, c *Connect) {
 	}
 }
 
-func (self *ServeWs) ReadData(s *Server, ch *base.UserChannel, c *Connect) {
+func (self *ServeWs) ReadData(s *server.Server, ch *base.UserChannel, sId string) {
 	defer func() {
 		logrus.Infof("start exec disConnect ...")
 		if ch.Room == nil || ch.UserId == 0 {
@@ -133,7 +134,7 @@ func (self *ServeWs) ReadData(s *Server, ch *base.UserChannel, c *Connect) {
 			logrus.Errorf("s.Operator.Connect no authToken")
 			return
 		}
-		connReq.ServerId = c.ServerId //config.Conf.Connect.ConnectWebsocket.ServerId
+		connReq.ServerId = sId //config.Conf.Connect.ConnectWebsocket.ServerId
 		userId, err := s.Operator.Connect(connReq)
 		if err != nil {
 			logrus.Errorf("s.Operator.Connect error %s", err.Error())

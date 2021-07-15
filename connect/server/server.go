@@ -17,6 +17,18 @@ const (
 	BroadcastSize   = 512
 )
 
+type ServeProto interface {
+	Init(*Server, string) error
+	WriteData(*base.UserChannel, string)
+	ReadData(*Server, *base.UserChannel, string)
+}
+
+type Server struct {
+	Buckets   []*base.Bucket
+	Options   ServerOptions
+	bucketIdx uint32
+	Operator  base.Operator
+}
 
 type ServerOptions struct {
 	WriteWait       time.Duration
@@ -26,13 +38,6 @@ type ServerOptions struct {
 	ReadBufferSize  int
 	WriteBufferSize int
 	BroadcastSize   int
-}
-
-type Server struct {
-	Buckets   []*base.Bucket
-	Options   ServerOptions
-	bucketIdx uint32
-	Operator  base.Operator
 }
 
 var DefaultServer *Server

@@ -8,7 +8,7 @@ package site
 import (
 	"fmt"
 	"github.com/sirupsen/logrus"
-	"gochat/config"
+	"chat_go/config"
 	"net/http"
 )
 

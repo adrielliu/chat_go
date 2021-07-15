@@ -23,13 +23,13 @@ func Push(c *gin.Context) {
 	getUserNameReq := &proto.GetUserInfoRequest{UserId: toUserIdInt}
 	code, toUserName := rpc.RpcLogicObj.GetUserNameByUserId(getUserNameReq)
 	if code == tools.CodeFail {
-		tools.FailWithMsg(c, "rpc fail get friend userName")
+		tools.FailWithMsg(c, "server fail get friend userName")
 		return
 	}
 	checkAuthReq := &proto.CheckAuthRequest{AuthToken: authToken}
 	code, fromUserId, fromUserName := rpc.RpcLogicObj.CheckAuth(checkAuthReq)
 	if code == tools.CodeFail {
-		tools.FailWithMsg(c, "rpc fail get self info")
+		tools.FailWithMsg(c, "server fail get self info")
 		return
 	}
 	roomId := formPush.RoomId
@@ -63,7 +63,7 @@ func PushRoom(c *gin.Context) {
 	checkAuthReq := &proto.CheckAuthRequest{AuthToken: authToken}
 	authCode, fromUserId, fromUserName := rpc.RpcLogicObj.CheckAuth(checkAuthReq)
 	if authCode == tools.CodeFail {
-		tools.FailWithMsg(c, "rpc fail get self info")
+		tools.FailWithMsg(c, "server fail get self info")
 		return
 	}
 	req := &proto.Send{
@@ -75,7 +75,7 @@ func PushRoom(c *gin.Context) {
 	}
 	code, msg := rpc.RpcLogicObj.PushRoom(req)
 	if code == tools.CodeFail {
-		tools.FailWithMsg(c, "rpc push room msg fail!")
+		tools.FailWithMsg(c, "server push room msg fail!")
 		return
 	}
 	tools.SuccessWithMsg(c, "ok", msg)
@@ -95,7 +95,7 @@ func Count(c *gin.Context) {
 	}
 	code, msg := rpc.RpcLogicObj.Count(req)
 	if code == tools.CodeFail {
-		tools.FailWithMsg(c, "rpc get room count fail!")
+		tools.FailWithMsg(c, "server get room count fail!")
 		return
 	}
 	tools.SuccessWithMsg(c, "ok", msg)
@@ -115,7 +115,7 @@ func GetRoomInfo(c *gin.Context) {
 	}
 	code, msg := rpc.RpcLogicObj.GetRoomInfo(req)
 	if code == tools.CodeFail {
-		tools.FailWithMsg(c, "rpc get room info fail!")
+		tools.FailWithMsg(c, "server get room info fail!")
 		return
 	}
 	tools.SuccessWithMsg(c, "ok", msg)

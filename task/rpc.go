@@ -73,7 +73,7 @@ func (task *Task) broadcastRoomToConnect(roomId int, msg []byte) {
 	}
 	reply := &proto.SuccessReply{}
 	for _, rpc := range RpcConnectClientList {
-		logrus.Infof("broadcastRoomToConnect rpc  %v", rpc)
+		logrus.Infof("broadcastRoomToConnect server  %v", rpc)
 		rpc.Call(context.Background(), "PushRoomMsg", pushRoomMsgReq, reply)
 		logrus.Infof("reply %s", reply.Msg)
 	}
@@ -101,7 +101,7 @@ func (task *Task) broadcastRoomCountToConnect(roomId, count int) {
 	}
 	reply := &proto.SuccessReply{}
 	for _, rpc := range RpcConnectClientList {
-		logrus.Infof("broadcastRoomCountToConnect rpc  %v", rpc)
+		logrus.Infof("broadcastRoomCountToConnect server  %v", rpc)
 		rpc.Call(context.Background(), "PushRoomCount", pushRoomMsgReq, reply)
 		logrus.Infof("reply %s", reply.Msg)
 	}
@@ -131,8 +131,8 @@ func (task *Task) broadcastRoomInfoToConnect(roomId int, roomUserInfo map[string
 	}
 	reply := &proto.SuccessReply{}
 	for _, rpc := range RpcConnectClientList {
-		logrus.Infof("broadcastRoomInfoToConnect rpc  %v", rpc)
+		logrus.Infof("broadcastRoomInfoToConnect server  %v", rpc)
 		rpc.Call(context.Background(), "PushRoomInfo", pushRoomMsgReq, reply)
-		logrus.Infof("broadcastRoomInfoToConnect rpc  reply %v", reply)
+		logrus.Infof("broadcastRoomInfoToConnect server  reply %v", reply)
 	}
 }

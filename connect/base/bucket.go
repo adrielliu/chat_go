@@ -1,4 +1,4 @@
-package connect
+package base
 
 import (
 	"chat_go/proto"
@@ -64,14 +64,14 @@ func (b *Bucket) AddChannel (userId int, roomId int, ch *UserChannel) (err error
 		ok bool
 	)
 	b.cLock.Lock()
-	if roomId != NoRoom{
+	if roomId != NoRoom {
 		if room, ok = b.rooms[roomId]; !ok{
 			room = NewRoom(roomId)
 			b.rooms[roomId] = room
 		}
 		ch.Room = room
 	}
-	ch.userId = userId
+	ch.UserId = userId
 	b.chs[userId] = ch
 	b.cLock.Unlock()
 	if room != nil{
@@ -87,10 +87,10 @@ func (b *Bucket) DeleteChannel(ch *UserChannel)  {
 	)
 	b.cLock.Lock()
 	defer b.cLock.Unlock()
-	if ch, ok = b.chs[ch.userId]; ok{
-		room = b.chs[ch.userId].Room
+	if ch, ok = b.chs[ch.UserId]; ok{
+		room = b.chs[ch.UserId].Room
 		// delete from bucket
-		delete(b.chs, ch.userId)
+		delete(b.chs, ch.UserId)
 	}
 	if room != nil && room.DeleteUser(ch){
 		// if room empty delete,will mark room.drop is true

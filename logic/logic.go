@@ -26,8 +26,8 @@ func (logic *Logic) Run()  {
 		logrus.Panicf("logic init publishRedisClient fail,err:%s", err.Error())
 	}
 
-	//init rpc server
+	//init server server
 	if err := logic.InitRpcServer(); err != nil {
-		logrus.Panicf("logic init rpc server fail")
+		logrus.Panicf("logic init server server fail")
 	}
 }

@@ -1,31 +1,28 @@
-/**
- * Created by lock
- * Date: 2020/4/14
- */
-package connect
+package protos
 
 import (
 	"bufio"
 	"bytes"
+	"chat_go/api/rpc"
+	"chat_go/config"
+	"chat_go/connect/base"
+	"chat_go/pkg/stickpackage"
+	"chat_go/proto"
 	"encoding/binary"
 	"encoding/json"
 	"github.com/sirupsen/logrus"
-	"chat_go/api/rpc"
-	"chat_go/config"
-	"chat_go/pkg/stickpackage"
-	"chat_go/proto"
 	"net"
 	"strings"
 	"time"
 )
 
+
 const maxInt = 1<<31 - 1
 
-func init() {
-	rpc.InitLogicRpcClient()
+type ServeTCP struct {
 }
 
-func (c *Connect) InitTcpServer() error {
+func (self *ServeTCP) Init(s *Server, c *Connect) error  {
 	aTcpAddr := strings.Split(config.Conf.Connect.ConnectTcp.Bind, ",")
 	cpuNum := config.Conf.Connect.ConnectBucket.CpuNum
 	var (
@@ -45,13 +42,13 @@ func (c *Connect) InitTcpServer() error {
 		logrus.Infof("start tcp listen at:%s", ipPort)
 		// cpu core num
 		for i := 0; i < cpuNum; i++ {
-			go c.acceptTcp(listener)
+			go self.acceptTcp(listener, c)
 		}
 	}
 	return nil
 }
 
-func (c *Connect) acceptTcp(listener *net.TCPListener) {
+func (self *ServeTCP) acceptTcp(listener *net.TCPListener, c *Connect)  {
 	var (
 		conn *net.TCPConn
 		err  error
@@ -78,7 +75,7 @@ func (c *Connect) acceptTcp(listener *net.TCPListener) {
 			logrus.Errorf("conn.SetWriteBuffer() error:%s", err.Error())
 			return
 		}
-		go c.ServeTcp(DefaultServer, conn, r)
+		go self.Serve(DefaultServer, conn, r, c)
 		if r++; r == maxInt {
 			logrus.Infof("conn.acceptTcp num is:%d", r)
 			r = 0
@@ -86,37 +83,76 @@ func (c *Connect) acceptTcp(listener *net.TCPListener) {
 	}
 }
 
-func (c *Connect) ServeTcp(server *Server, conn *net.TCPConn, r int) {
-	var ch *UserChannel
-	ch = NewUserChannel(server.Options.BroadcastSize)
-	ch.connTcp = conn
-	go c.writeDataToTcp(server, ch)
-	go c.readDataFromTcp(server, ch)
+func (self *ServeTCP) Serve(s *Server, conn *net.TCPConn, r int, c *Connect){
+	var ch *base.UserChannel
+	ch = base.NewUserChannel(BroadcastSize)
+	ch.ConnTcp = conn
+	go self.WriteData(ch, c)
+	go self.ReadData(s, ch, c)
 }
 
-func (c *Connect) readDataFromTcp(s *Server, ch *UserChannel) {
+func (self *ServeTCP) WriteData(ch *base.UserChannel, c *Connect){
+	//ping time default 54s
+	ticker := time.NewTicker(DefaultServer.Options.PingPeriod)
+	defer func() {
+		ticker.Stop()
+		_ = ch.ConnTcp.Close()
+		return
+	}()
+	pack := stickpackage.StickPackage{
+		Version: stickpackage.VersionContent,
+	}
+	for {
+		select {
+		case message, ok := <-ch.SendChan:
+			if !ok {
+				_ = ch.ConnTcp.Close()
+				return
+			}
+			pack.Msg = message.Body
+			pack.Length = pack.GetPackageLength()
+			//send msg
+			logrus.Infof("send tcp msg to conn:%s", pack.String())
+			if err := pack.Pack(ch.ConnTcp); err != nil {
+				logrus.Errorf("connTcp.write message err:%s", err.Error())
+				return
+			}
+		case <-ticker.C:
+			logrus.Infof("connTcp.ping message,send")
+			//send a ping msg ,if error , return
+			pack.Msg = []byte("ping msg")
+			pack.Length = pack.GetPackageLength()
+			if err := pack.Pack(ch.ConnTcp); err != nil {
+				//send ping msg to tcp conn
+				return
+			}
+		}
+	}
+}
+
+func (self *ServeTCP) ReadData(s *Server, ch *base.UserChannel, c *Connect) {
 	defer func() {
 		logrus.Infof("start exec disConnect ...")
-		if ch.Room == nil || ch.userId == 0 {
+		if ch.Room == nil || ch.UserId == 0 {
 			logrus.Infof("roomId and userId eq 0")
-			_ = ch.connTcp.Close()
+			_ = ch.ConnTcp.Close()
 			return
 		}
 		logrus.Infof("exec disConnect ...")
 		disConnectRequest := new(proto.DisConnectRequest)
 		disConnectRequest.RoomId = ch.Room.Id
-		disConnectRequest.UserId = ch.userId
-		s.GetBucketByUID(ch.userId).DeleteChannel(ch)
-		if err := s.operator.DisConnect(disConnectRequest); err != nil {
-			logrus.Warnf("DisConnect rpc err :%s", err.Error())
+		disConnectRequest.UserId = ch.UserId
+		s.GetBucketByUID(ch.UserId).DeleteChannel(ch)
+		if err := s.Operator.DisConnect(disConnectRequest); err != nil {
+			logrus.Warnf("DisConnect server err :%s", err.Error())
 		}
-		if err := ch.connTcp.Close(); err != nil {
+		if err := ch.ConnTcp.Close(); err != nil {
 			logrus.Warnf("DisConnect close tcp conn err :%s", err.Error())
 		}
 		return
 	}()
 	// scanner
-	scannerPackage := bufio.NewScanner(ch.connTcp)
+	scannerPackage := bufio.NewScanner(ch.ConnTcp)
 	scannerPackage.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		if !atEOF && data[0] == 'v' {
 			if len(data) > stickpackage.TcpHeaderLength {
@@ -153,7 +189,7 @@ func (c *Connect) readDataFromTcp(s *Server, ch *UserChannel) {
 			}
 			logrus.Infof("json unmarshal,raw tcp msg is:%+v", rawTcpMsg)
 			if rawTcpMsg.AuthToken == "" {
-				logrus.Errorf("tcp s.operator.Connect no authToken")
+				logrus.Errorf("tcp s.Operator.Connect no authToken")
 				return
 			}
 			if rawTcpMsg.RoomId <= 0 {
@@ -167,10 +203,10 @@ func (c *Connect) readDataFromTcp(s *Server, ch *UserChannel) {
 				//fix
 				//connReq.ServerId = config.Conf.Connect.ConnectTcp.ServerId
 				connReq.ServerId = c.ServerId
-				userId, err := s.operator.Connect(&connReq)
-				logrus.Infof("tcp s.operator.Connect userId is :%d", userId)
+				userId, err := s.Operator.Connect(&connReq)
+				logrus.Infof("tcp s.Operator.Connect userId is :%d", userId)
 				if err != nil {
-					logrus.Errorf("tcp s.operator.Connect error %s", err.Error())
+					logrus.Errorf("tcp s.Operator.Connect error %s", err.Error())
 					return
 				}
 				if userId == 0 {
@@ -182,7 +218,7 @@ func (c *Connect) readDataFromTcp(s *Server, ch *UserChannel) {
 				err = b.AddChannel(userId, connReq.RoomId, ch)
 				if err != nil {
 					logrus.Errorf("tcp conn put room err: %s", err.Error())
-					_ = ch.connTcp.Close()
+					_ = ch.ConnTcp.Close()
 					return
 				}
 			case config.OpRoomSend:
@@ -201,45 +237,6 @@ func (c *Connect) readDataFromTcp(s *Server, ch *UserChannel) {
 		if err := scannerPackage.Err(); err != nil {
 			logrus.Errorf("tcp get a err package:%s", err.Error())
 			return
-		}
-	}
-}
-
-func (c *Connect) writeDataToTcp(s *Server, ch *UserChannel) {
-	//ping time default 54s
-	ticker := time.NewTicker(DefaultServer.Options.PingPeriod)
-	defer func() {
-		ticker.Stop()
-		_ = ch.connTcp.Close()
-		return
-	}()
-	pack := stickpackage.StickPackage{
-		Version: stickpackage.VersionContent,
-	}
-	for {
-		select {
-		case message, ok := <-ch.sendChan:
-			if !ok {
-				_ = ch.connTcp.Close()
-				return
-			}
-			pack.Msg = message.Body
-			pack.Length = pack.GetPackageLength()
-			//send msg
-			logrus.Infof("send tcp msg to conn:%s", pack.String())
-			if err := pack.Pack(ch.connTcp); err != nil {
-				logrus.Errorf("connTcp.write message err:%s", err.Error())
-				return
-			}
-		case <-ticker.C:
-			logrus.Infof("connTcp.ping message,send")
-			//send a ping msg ,if error , return
-			pack.Msg = []byte("ping msg")
-			pack.Length = pack.GetPackageLength()
-			if err := pack.Pack(ch.connTcp); err != nil {
-				//send ping msg to tcp conn
-				return
-			}
 		}
 	}
 }

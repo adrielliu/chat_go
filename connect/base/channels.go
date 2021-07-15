@@ -1,8 +1,8 @@
-package connect
+package base
 
 import (
-	"github.com/gorilla/websocket"
 	"chat_go/proto"
+	"github.com/gorilla/websocket"
 	"net"
 )
 
@@ -11,15 +11,15 @@ type UserChannel struct {
 	Room     *Room
 	Next     *UserChannel
 	Prev     *UserChannel
-	sendChan chan *proto.Msg
-	userId   int
-	conn     *websocket.Conn
-	connTcp  *net.TCPConn
+	SendChan chan *proto.Msg
+	UserId   int
+	Conn     *websocket.Conn
+	ConnTcp  *net.TCPConn
 }
 
 func NewUserChannel(size int) (c *UserChannel) {
 	c = new(UserChannel)
-	c.sendChan = make(chan *proto.Msg, size)
+	c.SendChan = make(chan *proto.Msg, size)
 	c.Next = nil
 	c.Prev = nil
 	return
@@ -27,7 +27,7 @@ func NewUserChannel(size int) (c *UserChannel) {
 
 func (ch *UserChannel) SendMessage(msg *proto.Msg) (err error) {
 	select {
-	case ch.sendChan <- msg:
+	case ch.SendChan <- msg:
 	default:
 	}
 	return

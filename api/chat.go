@@ -25,7 +25,7 @@ func New() *Chat {
 
 //api server,Also, you can use gin,echo ... framework wrap
 func  (c *Chat) Run() {
-	//init rpc client
+	//init server client
 	rpc.InitLogicRpcClient()
 
 	r := router.Register()

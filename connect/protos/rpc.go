@@ -1,10 +1,12 @@
-package connect
+package protos
 
 import (
 	"chat_go/config"
+	"chat_go/connect/base"
 	"chat_go/proto"
 	"chat_go/tools"
 	"context"
+	"fmt"
 	"github.com/rcrowley/go-metrics"
 	"github.com/sirupsen/logrus"
 	"github.com/smallnest/rpcx/client"
@@ -13,7 +15,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"fmt"
 )
 
 var logicRpcClient client.XClient
@@ -23,7 +24,7 @@ var once sync.Once
 type RpcConnect struct {
 }
 
-// conn
+// Conn
 func (rpc *RpcConnect) Connect(connReq *proto.ConnectRequest) (uid int, err error)  {
 	reply := &proto.ConnectReply{}
 	err = logicRpcClient.Call(context.Background(), "Connect", connReq, reply)
@@ -31,7 +32,7 @@ func (rpc *RpcConnect) Connect(connReq *proto.ConnectRequest) (uid int, err erro
 		logrus.Fatalf("failed to call: %v", err)
 	}
 	uid = reply.UserId
-	logrus.Infof("connect logic userId :%d", reply.UserId)
+	logrus.Infof("connect logic UserId :%d", reply.UserId)
 	return
 }
 
@@ -77,12 +78,12 @@ type RpcConnectPush struct {
 
 func (rpc *RpcConnectPush) PushSingleMsg(ctx context.Context, pushMsgReq *proto.PushMsgRequest, successReply *proto.SuccessReply) (err error) {
 	var (
-		bucket *Bucket
-		channel *UserChannel
+		bucket *base.Bucket
+		channel *base.UserChannel
 	)
-	logrus.Info("rpc SendRoomMessage :%v ", pushMsgReq)
+	logrus.Info("server SendRoomMessage :%v ", pushMsgReq)
 	if pushMsgReq == nil {
-		logrus.Errorf("rpc PushSingleMsg() args:(%v)", pushMsgReq)
+		logrus.Errorf("server PushSingleMsg() args:(%v)", pushMsgReq)
 		return
 	}
 	bucket = DefaultServer.GetBucketByUID(pushMsgReq.UserId)

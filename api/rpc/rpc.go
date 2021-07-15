@@ -32,7 +32,7 @@ func InitLogicRpcClient() {
 		RpcLogicObj = new(RpcLogic)
 	})
 	if LogicRpcClient == nil {
-		logrus.Error("get logic rpc client nil")
+		logrus.Error("get logic server client nil")
 	}
 
 }

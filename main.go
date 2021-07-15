@@ -6,13 +6,13 @@
 package main
 
 import (
-	"flag"
-	"fmt"
 	"chat_go/api"
-	"chat_go/connect"
+	"chat_go/connect/protos"
 	"chat_go/logic"
 	"chat_go/site"
 	"chat_go/task"
+	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -27,9 +27,9 @@ func main() {
 	case "logic":
 		logic.New().Run()
 	case "connect_websocket":
-		connect.New().Run()
+		protos.New().Run()
 	case "connect_tcp":
-		connect.New().RunTcp()
+		protos.New().RunTcp()
 	case "task":
 		task.New().Run()
 	case "api":

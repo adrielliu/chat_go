@@ -1,6 +1,8 @@
-package connect
+package protos
 
-import "chat_go/proto"
+import (
+	"chat_go/proto"
+)
 
 type Operator interface {
 	Connect(conn *proto.ConnectRequest) (int, error)
@@ -10,14 +12,14 @@ type Operator interface {
 type DefaultOperator struct {
 }
 
-//rpc call logic layer
+//server call logic layer
 func (o *DefaultOperator) Connect(conn *proto.ConnectRequest) (uid int, err error) {
 	rpcConnect := new(RpcConnect)
 	uid, err = rpcConnect.Connect(conn)
 	return
 }
 
-//rpc call logic layer
+//server call logic layer
 func (o *DefaultOperator) DisConnect(disConn *proto.DisConnectRequest) (err error) {
 	rpcConnect := new(RpcConnect)
 	err = rpcConnect.DisConnect(disConn)

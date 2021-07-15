@@ -1,4 +1,4 @@
-package connect
+package base
 
 import (
 	"chat_go/proto"

@@ -94,7 +94,7 @@ func (self *ServeTCP) Serve(conn *net.TCPConn, r int, sId string){
 
 func (self *ServeTCP) WriteData(ch *base.UserChannel, sId string){
 	//ping time default 54s
-	ticker := time.NewTicker(DefaultServer.Options.PingPeriod)
+	ticker := time.NewTicker(self.Options.PingPeriod)
 	defer func() {
 		ticker.Stop()
 		_ = ch.ConnTcp.Close()

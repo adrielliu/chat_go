@@ -32,8 +32,9 @@ func Run(proto string)  {
 			RoutineSize:   connectConfig.ConnectBucket.RoutineSize,
 		})
 	}
-	operator := new(server.DefaultOperator)
-	defaultServer := protos.NewServer(Buckets, operator, protos.ServerOptions{
+	var operator base.Operator
+	operator = new(server.RpcClient)
+	protos.DefaultServer = protos.NewServer(Buckets, operator, protos.ServerOptions{
 		WriteWait:       10 * time.Second,
 		PongWait:        60 * time.Second,
 		PingPeriod:      54 * time.Second,
@@ -44,18 +45,18 @@ func Run(proto string)  {
 	})
 	ServerId := fmt.Sprintf("%s-%s", "ws", uuid.New().String())
 	var sp protos.ServeProto;
-	rpc := &server.RpcConnect{}
+	rpc := &server.RpcServer{}
 	if proto == "ws"{
 		//init Connect layer server server ,task layer will call this
 		if err := rpc.InitConnectWebsocketRpcServer(ServerId); err != nil {
 			logrus.Panicf("InitConnectWebsocketRpcServer Fatal error: %s \n", err.Error())
 		}
-		sp = &protos.ServeWs{defaultServer}
+		sp = &protos.ServeWs{protos.DefaultServer}
 	}else if proto == "tcp"{
 		if err := rpc.InitConnectTcpRpcServer(ServerId); err != nil {
 			logrus.Panicf("InitConnectWebsocketRpcServer Fatal error: %s \n", err.Error())
 		}
-		sp = &protos.ServeTCP{defaultServer}
+		sp = &protos.ServeTCP{protos.DefaultServer}
 	}
 	//start Connect layer server handler persistent connection
 	if err := sp.Init(ServerId); err != nil {

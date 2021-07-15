@@ -39,10 +39,10 @@ type Server struct {
 	Buckets   []*base.Bucket
 	Options   ServerOptions
 	bucketIdx uint32
-	Operator  Operator
+	Operator  base.Operator
 }
 
-func NewServer(buckets []*base.Bucket, o Operator, opts ServerOptions) *Server {
+func NewServer(buckets []*base.Bucket, o base.Operator, opts ServerOptions) *Server {
 	s := new(Server)
 	s.Buckets = buckets
 	s.Operator = o

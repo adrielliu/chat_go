@@ -71,6 +71,28 @@ func (c *Connect) InitConnectTcpRpcServer() (err error) {
 	return
 }
 
+func (c *Connect) createConnectWebsocktsRpcServer(network string, addr string) {
+	s := server.NewServer()
+	addRegistryPlugin(s, network, addr)
+	//config.Conf.Connect.ConnectTcp.ServerId
+	//s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", config.Conf.Connect.ConnectWebsocket.ServerId))
+	s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", c.ServerId))
+	s.RegisterOnShutdown(func(s *server.Server) {
+		s.UnregisterAll()
+	})
+	s.Serve(network, addr)
+}
+
+func (c *Connect) createConnectTcpRpcServer(network string, addr string) {
+	s := server.NewServer()
+	addRegistryPlugin(s, network, addr)
+	//s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", config.Conf.Connect.ConnectTcp.ServerId))
+	s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", c.ServerId))
+	s.RegisterOnShutdown(func(s *server.Server) {
+		s.UnregisterAll()
+	})
+	s.Serve(network, addr)
+}
 
 
 type RpcConnectPush struct {
@@ -126,30 +148,6 @@ func (rpc *RpcConnectPush) PushRoomInfo(ctx context.Context, pushRoomMsgReq *pro
 		bucket.BroadcastRoom(pushRoomMsgReq)
 	}
 	return
-}
-
-
-func (c *Connect) createConnectWebsocktsRpcServer(network string, addr string) {
-	s := server.NewServer()
-	addRegistryPlugin(s, network, addr)
-	//config.Conf.Connect.ConnectTcp.ServerId
-	//s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", config.Conf.Connect.ConnectWebsocket.ServerId))
-	s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", c.ServerId))
-	s.RegisterOnShutdown(func(s *server.Server) {
-		s.UnregisterAll()
-	})
-	s.Serve(network, addr)
-}
-
-func (c *Connect) createConnectTcpRpcServer(network string, addr string) {
-	s := server.NewServer()
-	addRegistryPlugin(s, network, addr)
-	//s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", config.Conf.Connect.ConnectTcp.ServerId))
-	s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", c.ServerId))
-	s.RegisterOnShutdown(func(s *server.Server) {
-		s.UnregisterAll()
-	})
-	s.Serve(network, addr)
 }
 
 func addRegistryPlugin(s *server.Server, network string, addr string) {

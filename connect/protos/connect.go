@@ -58,7 +58,7 @@ func (c *Connect) Run(proto string)  {
 			RoutineSize:   connectConfig.ConnectBucket.RoutineSize,
 		})
 	}
-	operator := new(DefaultOperator)
+	operator := new(base.DefaultOperator)
 	DefaultServer = NewServer(Buckets, operator, ServerOptions{
 		WriteWait:       10 * time.Second,
 		PongWait:        60 * time.Second,

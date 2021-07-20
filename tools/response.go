@@ -10,6 +10,7 @@ const (
 	CodeFail         = 1
 	CodeUnknownError = -1
 	CodeSessionError = 40000
+	ContextErrCode = "context/err/code"
 )
 
 var MsgCodeMap = map[int]string{

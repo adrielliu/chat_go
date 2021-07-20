@@ -10,6 +10,7 @@ import (
 func Register() *gin.Engine {
 	r := gin.Default()
 	r.Use(CorsMiddleware())  // 注册中间件
+	r.Use(LoggerHandler, RecoverHandler)
 	initUserRouter(r)
 	initPushRouter(r)
 	r.NoRoute(func(c *gin.Context) {

@@ -17,7 +17,7 @@ func Login(c *gin.Context) {
 	}
 	req := &proto.LoginRequest{
 		Name: formLogin.UserName,
-		Password: formLogin.Password,
+		Password: tools.Sha1(formLogin.Password),
 	}
 	code, authToken, msg := rpc.RpcLogicObj.Login(req)
 	if code == tools.CodeFail || authToken == "" {

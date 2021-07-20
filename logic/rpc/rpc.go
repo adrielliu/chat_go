@@ -26,6 +26,7 @@ func (rpc *RpcLogic) Register(ctx context.Context, args *proto.RegisterRequest, 
 	}
 	u.UserName = args.Name
 	u.Password = args.Password
+	logrus.Info("get new user: ", u)
 	userId, err := u.Add()
 	if err != nil {
 		logrus.Infof("register err:%s", err.Error())
@@ -60,7 +61,7 @@ func (rpc *RpcLogic) Login(ctx context.Context, args *proto.LoginRequest, reply 
 	passWord := args.Password
 	data := u.CheckHaveUserName(userName)
 	if (data.Id == 0) || (passWord != data.Password) {
-		return errors.New("no this user or password error!")
+		return errors.New("no this user or password error, passwd: " + passWord + ", table passed: " + data.Password)
 	}
 	loginSessionId := tools.GetSessionIdByUserId(data.Id)
 	//set token

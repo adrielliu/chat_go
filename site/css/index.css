@@ -1,0 +1,185 @@
+/* reset */
+html, body, h1, h2, h3, h4, h5, h6, div, dl, dt, dd, ul, ol, li, p, blockquote, pre, hr, figure, table, caption, th, td, form, fieldset, legend, input, button, textarea, menu{
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: black;
+    background-image: radial-gradient(white, rgba(255, 255, 255, .2) 2px, transparent 40px),
+    radial-gradient(white, rgba(255, 255, 255, .15) 1px, transparent 30px),
+    radial-gradient(white, rgba(255, 255, 255, .1) 2px, transparent 40px),
+    radial-gradient(rgba(255, 255, 255, .4), rgba(255, 255, 255, .1) 2px, transparent 30px);
+    background-size: 550px 550px, 350px 350px, 250px 250px, 150px 150px;
+    background-position: 0 0, 40px 60px, 130px 270px, 70px 100px;
+}
+
+header, footer, section, article, aside, nav, hgroup, address, figure, figcaption, menu, details{
+    display: block;
+}
+table{
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+caption, th{
+    text-align: left;
+    font-weight: normal;
+}
+html, body, fieldset, img, iframe, abbr{
+    border: 0;
+}
+i, cite, em, var, address, dfn{
+    font-style: normal;
+}
+[hidefocus], summary{
+    outline: 0;
+}
+li{
+    list-style: none;
+}
+h1, h2, h3, h4, h5, h6, small{
+    font-size: 100%;
+}
+sup, sub{
+    font-size: 83%;
+}
+pre, code, kbd, samp{
+    font-family: inherit;
+}
+q:before, q:after{
+    content: none;
+}
+textarea{
+    overflow: auto;
+    resize: none;
+}
+label, summary{
+    cursor: default;
+}
+a, button{
+    cursor: pointer;
+}
+h1, h2, h3, h4, h5, h6, em, strong, b{
+    font-weight: bold;
+}
+del, ins, u, s, a, a:hover{
+    text-decoration: none;
+}
+body, textarea, input, button, select, keygen, legend{
+    font: 12px/1.14 arial,\5b8b\4f53;
+    color: #333;
+    outline: 0;
+}
+body{
+    background: #fff;
+}
+a, a:hover{
+    color: #333;
+}
+
+.image {
+    width: 50px;
+    height: 50px;
+}
+
+.m-room .g-left {
+    float: left;
+    width: 745px;
+    height: 100%;
+    box-sizing: border-box;
+    border-right: 1px solid #434e58;
+}
+
+.m-room .g-right {
+    float: right;
+    position: relative;
+    width: 257px;
+    height: 100%;
+}
+
+.m-head{
+    margin-left: 0 !important;
+    width: 100%;
+    height: 54px;
+    /*background-color: #fff;*/
+    background-color: #a6e1ec;
+    opacity: 0.8;
+    /*border-top: 2px solid #238efa;*/
+}
+
+.g-doc{
+    width: 100%;
+    margin: 0;
+}
+
+.m-head .logo{
+    padding-left: 30px;
+}
+
+.m-head .item{
+    display: inline-block;
+    font-size: 14px;
+    line-height: 54px;
+    height: 54px;
+    color: #1b2126;
+}
+
+.m-head .info{
+    float: right;
+    position: relative;
+    display: inline-block;
+    padding-right: 0.8%;
+    font-size: 12px;
+    color:#909ead;
+    /*margin-left: 35px !important;*/
+}
+
+.p-0{
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.c-item{
+    background: white;
+    height: 60px;
+    cursor: pointer;
+}
+
+.c-item .c-left{
+    height: 100%;
+    padding-left: 15px;
+    border-right: 1.5px solid black;
+    box-sizing: border-box;
+}
+
+.c-item .c-right{
+    padding-left: 15px;
+    height:inherit;
+
+}
+
+.c-item .tx{
+    font-size: 18px;
+    padding-right: 10px;
+    height: 100%;
+    position: relative;
+}
+
+
+
+.c-item .name{
+    position: relative;
+}
+
+.c-item .date{
+    float: right;
+    position: relative;
+}
+
+.c-item .content{
+    font-size: 18px;
+}
+
+.g-left{
+    border-right: 1.5px solid black;
+}

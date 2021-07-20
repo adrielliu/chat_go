@@ -28,6 +28,7 @@ func  (c *Chat) Run() {
 	//init server client
 	rpc.InitLogicRpcClient()
 
+	// start web
 	r := router.Register()
 	runMode := config.GetGinRunMode()
 	logrus.Info("server start , now run mode is ", runMode)

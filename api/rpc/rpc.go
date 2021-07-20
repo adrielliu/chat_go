@@ -50,6 +50,7 @@ func (r *RpcLogic) Login(req *proto.LoginRequest) (code int, authToken string, m
 
 func (r *RpcLogic) Register(req *proto.RegisterRequest) (code int, authToken string, msg string)  {
 	reply := &proto.RegisterReply{}
+	logrus.Info("send register msg: ", req)
 	err := LogicRpcClient.Call(context.Background(), "Register", req, reply)
 	if err != nil {
 		msg = err.Error()
